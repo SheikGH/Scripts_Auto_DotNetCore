@@ -1,0 +1,733 @@
+@echo off
+echo Main Layer Start...
+echo Creating CustomerManagement Solution...
+
+mkdir CustomerManagement
+cd CustomerManagement
+
+dotnet new sln --name CustomerManagement
+dotnet new classlib -n CustomerManagement.Core --framework net7.0
+dotnet new classlib -n CustomerManagement.Application --framework net7.0
+dotnet new classlib -n CustomerManagement.Infrastructure --framework net7.0
+dotnet new classlib -n CustomerManagement.Common --framework net7.0
+dotnet new mvc -n CustomerManagement.Web --framework net7.0
+
+dotnet sln add CustomerManagement.Core/CustomerManagement.Core.csproj
+dotnet sln add CustomerManagement.Application/CustomerManagement.Application.csproj
+dotnet sln add CustomerManagement.Infrastructure/CustomerManagement.Infrastructure.csproj
+dotnet sln add CustomerManagement.Common/CustomerManagement.Common.csproj
+dotnet sln add CustomerManagement.Web/CustomerManagement.Web.csproj
+
+dotnet add CustomerManagement.Core/CustomerManagement.Core.csproj reference CustomerManagement.Application/CustomerManagement.Application.csproj
+dotnet add CustomerManagement.Application/CustomerManagement.Application.csproj reference CustomerManagement.Core/CustomerManagement.Core.csproj
+dotnet add CustomerManagement.Application/CustomerManagement.Application.csproj reference CustomerManagement.Common/CustomerManagement.Common.csproj
+dotnet add CustomerManagement.Infrastructure/CustomerManagement.Infrastructure.csproj reference CustomerManagement.Core/CustomerManagement.Core.csproj
+dotnet add CustomerManagement.Infrastructure/CustomerManagement.Infrastructure.csproj reference CustomerManagement.Common/CustomerManagement.Common.csproj
+dotnet add CustomerManagement.Web/CustomerManagement.Web.csproj reference CustomerManagement.Application/CustomerManagement.Application.csproj
+dotnet add CustomerManagement.Web/CustomerManagement.Web.csproj reference CustomerManagement.Infrastructure/CustomerManagement.Infrastructure.csproj
+dotnet add CustomerManagement.Web/CustomerManagement.Web.csproj reference CustomerManagement.Core/CustomerManagement.Core.csproj
+dotnet add CustomerManagement.Web/CustomerManagement.Web.csproj reference CustomerManagement.Common/CustomerManagement.Common.csproj
+
+echo Adding NuGet Packages...
+dotnet add CustomerManagement.Infrastructure package Microsoft.EntityFrameworkCore --version 7.0.20
+dotnet add CustomerManagement.Infrastructure package Microsoft.EntityFrameworkCore.Design --version 7.0.20
+dotnet add CustomerManagement.Infrastructure package Microsoft.EntityFrameworkCore.SqlServer --version 7.0.20
+dotnet add CustomerManagement.Infrastructure package Dapper
+dotnet add CustomerManagement.Web package Microsoft.EntityFrameworkCore.Tools --version 7.0.20
+
+
+echo Creating Folder Structure...
+
+mkdir CustomerManagement.Core\Entities
+mkdir CustomerManagement.Core\Interfaces
+mkdir CustomerManagement.Application\DTOs
+mkdir CustomerManagement.Application\Interfaces
+mkdir CustomerManagement.Application\Services
+mkdir CustomerManagement.Application\Mapping
+mkdir CustomerManagement.Infrastructure\Persistence
+mkdir CustomerManagement.Infrastructure\Persistence\Data
+mkdir CustomerManagement.Infrastructure\Persistence\Repositories
+mkdir CustomerManagement.Infrastructure\Authentication
+mkdir CustomerManagement.Infrastructure\Middlewares
+mkdir CustomerManagement.Infrastructure\Extensions
+mkdir CustomerManagement.Infrastructure\Security
+mkdir CustomerManagement.Infrastructure\ExternalServices
+mkdir CustomerManagement.Common\Exceptions
+mkdir CustomerManagement.Common\Helpers
+mkdir CustomerManagement.Web\Views\Customers
+
+echo Solution-Packages-Folder End...
+
+
+
+
+
+echo Core Layer Start...
+
+(
+echo namespace CustomerManagement.Core.Entities {
+echo     public class Customer {
+echo         public int CustomerId { get; set; }
+echo         public string FirstName { get; set; }
+echo         public string LastName { get; set; }
+echo         public string Email { get; set; }
+echo         public string Phone { get; set; }
+echo         public string Address { get; set; }
+echo     }
+echo }
+) > CustomerManagement.Core\Entities\Customer.cs
+
+(
+echo using CustomerManagement.Core.Entities;
+echo using System.Collections.Generic;
+echo using System.Threading.Tasks;
+echo namespace CustomerManagement.Core.Interfaces
+echo {
+echo     public interface ICustomerRepository
+echo     {
+echo         Task^<IEnumerable^<Customer^>^> GetAllAsync^(^);
+echo         Task^<Customer^> GetByIdAsync^(int id^);
+echo         Task AddAsync^(Customer customer^);
+echo         Task UpdateAsync^(Customer customer^);
+echo         Task DeleteAsync^(int id^);
+echo     }
+echo }
+) > CustomerManagement.Core\Interfaces\ICustomerRepository.cs
+
+
+
+
+echo Core Layer End...
+
+
+
+
+echo Application Layer Start...
+
+(
+echo using System;
+echo using System.Collections.Generic;
+echo using System.ComponentModel;
+echo using System.ComponentModel.DataAnnotations;
+echo using System.ComponentModel.DataAnnotations.Schema;
+echo using System.Linq;
+echo using System.Text;
+echo using System.Threading.Tasks;
+echo.
+echo namespace CustomerManagement.Application.DTOs {
+echo    public class CustomerDto {
+echo         [Key]
+echo         [DatabaseGenerated^(DatabaseGeneratedOption.Identity^)]
+echo         public int CustomerId { get; set; }
+echo         [DisplayName^("First Name"^)]
+echo         [Required^(ErrorMessage = "First Name is required"^)]
+echo         [StringLength^(100, MinimumLength = 3^)]  
+echo         public string? FirstName { get; set; }
+echo         [DisplayName^("Last Name"^)]
+echo         [Required^(ErrorMessage = "Last Name is required"^)]
+echo         [StringLength^(100, MinimumLength = 3^)]  
+echo         public string? LastName { get; set; }
+echo         [Required^(ErrorMessage = "Please enter your email address"^)]
+echo         [DataType^(DataType.EmailAddress^)]
+echo         [Display^(Name = "Email Address"^)]
+echo         [MaxLength^(100^)]
+echo         [RegularExpression^(@"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}", ErrorMessage = "Please enter correct email"^)]   
+echo         public string Email { get; set; }
+echo         [Required]
+echo         [DataType^(DataType.PhoneNumber^)]
+echo         public string Phone { get; set; }
+echo         [Required^(ErrorMessage = "Employee Address is required"^)]
+echo         [StringLength^(300^)]  
+echo         public string Address { get; set; }
+echo    }
+echo }
+) > CustomerManagement.Application\DTOs\CustomerDto.cs
+
+
+(
+echo using CustomerManagement.Core.Entities;
+echo using CustomerManagement.Application.DTOs;
+echo using System.Collections.Generic;
+echo using System.Threading.Tasks;
+echo.
+echo namespace CustomerManagement.Application.Interfaces {
+echo   public interface ICustomerService
+echo   {
+echo     Task^<IEnumerable^<CustomerDto^>^> GetAllCustomersAsync^(^);
+echo     Task^<CustomerDto^> GetCustomerByIdAsync^(int id^);
+echo     Task AddCustomerAsync^(CustomerDto customer^);
+echo     Task UpdateCustomerAsync^(CustomerDto customer^);
+echo     Task DeleteCustomerAsync^(int id^);
+echo   }
+echo }
+) > CustomerManagement.Application\Interfaces\ICustomerService.cs
+
+
+rem CustomerService Implementation
+(
+echo using CustomerManagement.Application.DTOs;
+echo using CustomerManagement.Application.Interfaces;
+echo using CustomerManagement.Core.Entities;
+echo using CustomerManagement.Core.Interfaces;
+echo using System.Collections.Generic;
+echo using System.Linq;
+echo using System.Threading.Tasks;
+echo.
+echo namespace CustomerManagement.Application.Services
+echo {
+echo     public class CustomerService : ICustomerService
+echo     {
+echo         private readonly ICustomerRepository _customerRepository;
+echo         public CustomerService^(ICustomerRepository customerRepository^)
+echo         {
+echo             _customerRepository = customerRepository;
+echo         }
+echo         public async Task^<IEnumerable^<CustomerDto^>^> GetAllCustomersAsync^(^)
+echo         {
+echo             var customers = await _customerRepository.GetAllAsync^(^);
+echo             return customers.Select^(c =^> new CustomerDto
+echo             {
+echo                 CustomerId = c.CustomerId,
+echo                 FirstName = c.FirstName,
+echo                 LastName = c.LastName,
+echo                 Email = c.Email,
+echo                 Phone = c.Phone,
+echo                 Address = c.Address
+echo             }^);
+echo         }
+echo         public async Task^<CustomerDto^> GetCustomerByIdAsync^(int id^)
+echo         {
+echo             var customer = await _customerRepository.GetByIdAsync^(id^);
+echo             if ^(customer == null^) return null;
+echo             return new CustomerDto
+echo             {
+echo                 CustomerId = customer.CustomerId,
+echo                 FirstName = customer.FirstName,
+echo                 LastName = customer.LastName,
+echo                 Email = customer.Email,
+echo                 Phone = customer.Phone,
+echo                 Address = customer.Address
+echo             };
+echo         }
+echo         public async Task AddCustomerAsync^(CustomerDto customerDto^)
+echo         {
+echo             var customer = new Customer
+echo             {
+echo                 FirstName = customerDto.FirstName,
+echo                 LastName = customerDto.LastName,
+echo                 Email = customerDto.Email,
+echo                 Phone = customerDto.Phone,
+echo                 Address = customerDto.Address
+echo             };
+echo             await _customerRepository.AddAsync^(customer^);
+echo         }
+echo         public async Task UpdateCustomerAsync^(CustomerDto customerDto^)
+echo         {
+echo             var customer = new Customer
+echo             {
+echo                 CustomerId = customerDto.CustomerId,
+echo                 FirstName = customerDto.FirstName,
+echo                 LastName = customerDto.LastName,
+echo                 Email = customerDto.Email,
+echo                 Phone = customerDto.Phone,
+echo                 Address = customerDto.Address
+echo             };
+echo             await _customerRepository.UpdateAsync^(customer^);
+echo         }
+echo         public async Task DeleteCustomerAsync^(int id^)
+echo         {
+echo             await _customerRepository.DeleteAsync^(id^);
+echo         }
+echo     }
+echo }
+) > CustomerManagement.Application\Services\CustomerService.cs
+
+dotnet add CustomerManagement.Application package AutoMapper
+dotnet add CustomerManagement.Application package AutoMapper.Extensions.Microsoft.DependencyInjection
+
+rem Mapping Profile
+(
+echo using AutoMapper;
+echo using CustomerManagement.Core.Entities;
+echo using CustomerManagement.Application.DTOs;
+echo.
+echo namespace CustomerManagement.Application.Mapping
+echo {
+echo     public class MappingProfile : Profile
+echo     {
+echo         public MappingProfile^(^)
+echo         {
+echo             CreateMap^<Customer, CustomerDto^>^(^).ReverseMap^(^);
+echo         }
+echo     }
+echo }
+) > CustomerManagement.Application\Mapping\MappingProfile.cs
+
+echo Application Layer End...
+
+
+
+
+echo Infrastructure Layer Start...
+
+rem AppDbContext
+(
+echo using Microsoft.EntityFrameworkCore;
+echo using CustomerManagement.Core.Entities;
+echo.
+echo namespace CustomerManagement.Infrastructure.Persistence.Data {
+echo     public class AppDbContext : DbContext {
+echo         public AppDbContext^(DbContextOptions^<AppDbContext^> options^) : base^(options^) {}
+echo         public DbSet^<Customer^> Customers { get; set; }
+echo.
+echo         protected override void OnModelCreating^(ModelBuilder modelBuilder^)
+echo         {
+echo             modelBuilder.Entity^<Customer^>^(^).HasData^(
+echo                 new Customer { CustomerId = 1, FirstName = "John", LastName = "Doe", Email = "email1@gmail.com", Phone = "0547762054", Address = "Address1" },
+echo                 new Customer { CustomerId = 2, FirstName = "Jane", LastName = "Smith",  Email = "email2@gmail.com", Phone = "0547762067", Address = "Address2" },
+echo                 new Customer { CustomerId = 3, FirstName = "Leanne", LastName = "Graham",  Email = "email3@gmail.com", Phone = "0547762025", Address = "Address3" },
+echo                 new Customer { CustomerId = 4, FirstName = "Dennis", LastName = "Schulist",  Email = "email4@gmail.com", Phone = "0547762054", Address = "Address4" },
+echo                 new Customer { CustomerId = 5, FirstName = "Glenna", LastName = "Reichert",  Email = "email5@gmail.com", Phone = "0547762079", Address = "Address5" },
+echo                 new Customer { CustomerId = 6, FirstName = "Ervin", LastName = "Howell",  Email = "email6@gmail.com", Phone = "0547762124", Address = "Address6" }
+echo             ^);
+echo         }
+echo     }
+echo }
+) > CustomerManagement.Infrastructure\Persistence\Data\AppDbContext.cs
+
+@echo off
+REM Create CustomerRepository.cs
+(
+echo using CustomerManagement.Core.Interfaces;
+echo using CustomerManagement.Core.Entities;
+echo using CustomerManagement.Infrastructure.Persistence.Data;
+echo using Microsoft.EntityFrameworkCore;
+echo using System.Collections.Generic;
+echo using System.Threading.Tasks;
+echo.
+echo namespace CustomerManagement.Infrastructure.Persistence.Repositories {
+echo.
+echo     public class CustomerRepository : ICustomerRepository {
+echo         private readonly AppDbContext _context;
+echo         public CustomerRepository^(AppDbContext context^) {
+echo             _context = context;
+echo         }
+echo         public async Task^<IEnumerable^<Customer^>^> GetAllAsync^(^) =^> await _context.Customers.ToListAsync^(^);
+echo         public async Task^<Customer^> GetByIdAsync^(int id^) =^> await _context.Customers.FindAsync^(id^);
+echo         public async Task AddAsync^(Customer customer^) { _context.Customers.Add^(customer^); await _context.SaveChangesAsync^(^); }
+echo         public async Task UpdateAsync^(Customer customer^) { _context.Customers.Update^(customer^); await _context.SaveChangesAsync^(^); }
+echo         public async Task DeleteAsync^(int id^) {
+echo             var customer = await _context.Customers.FindAsync^(id^);
+echo             if ^(customer != null^) {
+echo                 _context.Customers.Remove^(customer^);
+echo                 await _context.SaveChangesAsync^(^);
+echo             }
+echo         }
+echo     }
+echo }
+) > CustomerManagement.Infrastructure\Persistence\Repositories\CustomerRepository.cs
+
+echo Infrastructure Layer End...
+
+
+
+
+echo Web-Program-Config Layer Start...
+
+REM Create Program.cs
+(
+echo using CustomerManagement.Core.Interfaces;
+echo using CustomerManagement.Infrastructure.Persistence.Data;
+echo using CustomerManagement.Infrastructure.Persistence.Repositories;
+echo using CustomerManagement.Application.Interfaces;
+echo using CustomerManagement.Application.Services;
+echo using Microsoft.EntityFrameworkCore;
+echo.
+echo var builder = WebApplication.CreateBuilder^(args^);
+echo.
+echo //Add DbContext
+echo builder.Services.AddDbContext^<AppDbContext^>^(options =^> options.UseSqlServer^(builder.Configuration.GetConnectionString^("DefaultConnection"^)^)^);
+echo.
+echo //Register Repository
+echo builder.Services.AddScoped^<ICustomerService, CustomerService^>^(^);
+echo builder.Services.AddScoped^<ICustomerRepository, CustomerRepository^>^(^);
+echo.
+echo // Add services to the container.
+echo builder.Services.AddControllersWithViews^(^);
+echo.
+echo var app = builder.Build^(^);
+echo.
+echo // Configure the HTTP request pipeline.
+echo if ^(!app.Environment.IsDevelopment^(^)^)
+echo {
+echo     app.UseExceptionHandler^("/Home/Error"^);
+echo     app.UseHsts^(^);
+echo }
+echo.
+echo app.UseHttpsRedirection^(^);
+echo app.UseStaticFiles^(^);
+echo.
+echo app.UseRouting^(^);
+echo.
+echo app.UseAuthorization^(^);
+echo.
+echo app.MapControllerRoute^(
+echo     name: "default",
+echo     pattern: "{controller=Home}/{action=Index}/{id?}"^);
+echo.
+echo app.Run^(^);
+) > CustomerManagement.Web\Program.cs
+
+:: Ask the user for input
+echo Enter your database details:
+set /p serverStr=Enter your Server Name: 
+set /p dbStr=Enter your Database Name: 
+set /p uIDStr=Enter your User Id: 
+set /p pwdStr=Enter your Password: 
+
+:: Use the input in a script
+echo Hello, Server Name:%serverStr%, Database Name:%dbStr%, User Id:%uIDStr%, Password: %pwdStr%
+
+REM Create appsettings.json
+(
+echo {
+echo   "ConnectionStrings": {
+echo    "DefaultConnection": "Server=%serverStr%;Database=%dbStr%;user id=%uIDStr%;password=%pwdStr%;Connection Timeout=30;Encrypt=false;"
+echo   },
+echo   "Logging": {
+echo     "LogLevel": {
+echo       "Default": "Information",
+echo       "Microsoft.AspNetCore": "Warning"
+echo     }
+echo   },
+echo   "AllowedHosts": "*"
+echo }
+) > CustomerManagement.Web\appsettings.json
+
+echo Web-Program-Config Layer End...
+
+
+
+
+
+echo Web-Controllers Layer Start...
+
+REM Create CustomersController.cs
+(
+echo using AutoMapper;
+echo using CustomerManagement.Core.Entities;
+echo using Microsoft.AspNetCore.Mvc;
+echo using CustomerManagement.Application.Interfaces;
+echo using CustomerManagement.Application.DTOs;
+echo.
+echo namespace CustomerManagement.Web.Controllers;
+echo.
+echo     public class CustomersController : Controller
+echo     {
+echo         private readonly ICustomerService _customerService;
+echo         public CustomersController^(ICustomerService customerService^)
+echo         {
+echo             _customerService = customerService;
+echo         }
+echo.
+echo         public async Task^<IActionResult^> Index^(^)
+echo         {
+echo             var customerDtos = await _customerService.GetAllCustomersAsync^(^);
+echo             return View^(customerDtos^);
+echo         }
+echo.
+echo         public IActionResult Create^(^)
+echo         {
+echo             return View^(^);
+echo         }
+echo.
+echo         [HttpPost]
+echo         public async Task^<IActionResult^> Create^(CustomerDto customer^)
+echo         {
+echo             if ^(ModelState.IsValid^)
+echo             {
+echo                 await _customerService.AddCustomerAsync^(customer^);
+echo                 return RedirectToAction^(nameof^(Index^)^);
+echo             }
+echo             return View^(customer^);
+echo         }
+echo.
+echo         public async Task^<IActionResult^> Edit^(int id^)
+echo         {
+echo             var customer = await _customerService.GetCustomerByIdAsync^(id^);
+echo             if ^(customer == null^) return NotFound^(^);
+echo             return View^(customer^);
+echo         }
+echo.
+echo         [HttpPost]
+echo         public async Task^<IActionResult^> Edit^(CustomerDto customer^)
+echo         {
+echo             if ^(ModelState.IsValid^)
+echo             {
+echo                 await _customerService.UpdateCustomerAsync^(customer^);
+echo                 return RedirectToAction^(nameof^(Index^)^);
+echo             }
+echo             return View^(customer^);
+echo         }
+echo.
+echo         public async Task^<IActionResult^> Delete^(int id^)
+echo         {
+echo             var customer = await _customerService.GetCustomerByIdAsync^(id^);
+echo             if ^(customer == null^) return NotFound^(^);
+echo             return View^(customer^);
+echo         }
+echo.
+echo         [HttpPost, ActionName^(^"Delete^"^)]
+echo         public async Task^<IActionResult^> DeleteConfirmed^(int id^)
+echo         {
+echo             await _customerService.DeleteCustomerAsync^(id^);
+echo             return RedirectToAction^(nameof^(Index^)^);
+echo         }
+echo     }
+) > CustomerManagement.Web\Controllers\CustomersController.cs
+
+
+echo Web-Controllers Layer End...
+
+
+
+echo Web-Controllers-View Layer Start...
+
+powershell -Command "(Get-Content 'CustomerManagement.Web\\Views\\Shared\\_Layout.cshtml') -replace '</ul>', '<li class=\"nav-item\"><a class=\"nav-link text-dark\" asp-area=\"\" asp-controller=\"Customers\" asp-action=\"Index\">Customers</a></li></ul>' | Set-Content 'CustomerManagement.Web\\Views\\Shared\\_Layout.cshtml'"
+					
+echo Create Index.cshtml
+(
+echo @model IEnumerable^<CustomerManagement.Application.DTOs.CustomerDto^>
+echo.
+echo @{
+echo     ViewData["Title"] = "Customers List";
+echo ^}
+echo.
+echo ^<h2^>Customers^</h2^>
+echo.
+echo ^<p^>
+echo     ^<a asp-action="Create" class="btn btn-primary"^>Create New Customer^</a^>
+echo ^</p^>
+echo.
+echo ^<table class="table table-striped"^>
+echo     ^<thead^>
+echo         ^<tr^>
+echo             ^<th^>FirstName^</th^>
+echo             ^<th^>LastName^</th^>
+echo             ^<th^>Email^</th^>
+echo             ^<th^>Phone^</th^>
+echo             ^<th^>Address^</th^>
+echo             ^<th^>Actions^</th^>
+echo         ^</tr^>
+echo     ^</thead^>
+echo     ^<tbody^>
+echo     @foreach ^(var customer in Model^)
+echo     ^{
+echo         ^<tr^>
+echo             ^<td^>@customer.FirstName^</td^>
+echo             ^<td^>@customer.LastName^</td^>
+echo             ^<td^>@customer.Email^</td^>
+echo             ^<td^>@customer.Phone^</td^>
+echo             ^<td^>@customer.Address^</td^>
+echo             ^<td^>
+echo                 ^<a asp-action="Edit" asp-route-id="@customer.CustomerId" class="btn btn-warning btn-sm"^>Edit^</a^>
+echo                 ^<a asp-action="Delete" asp-route-id="@customer.CustomerId" class="btn btn-danger btn-sm"^>Delete^</a^>
+echo             ^</td^>
+echo         ^</tr^>
+echo     ^}
+echo     ^</tbody^>
+echo ^</table^>
+) > CustomerManagement.Web\Views\Customers\Index.cshtml
+
+echo Create Index.cshtml
+(
+echo @model IEnumerable^<CustomerManagement.Application.DTOs.CustomerDto^>
+echo.
+echo @{
+echo     ViewData["Title"] = "Customers List";
+echo ^}
+echo.
+echo ^<h2^>Customers^</h2^>
+echo.
+echo ^<p^>
+echo     ^<a asp-action="Create" class="btn btn-primary"^>Create New Customer^</a^>
+echo ^</p^>
+echo.
+echo ^<table class="table table-striped"^>
+echo     ^<thead^>
+echo         ^<tr^>
+echo             ^<th^>FirstName^</th^>
+echo             ^<th^>LastName^</th^>
+echo             ^<th^>Email^</th^>
+echo             ^<th^>Phone^</th^>
+echo             ^<th^>Address^</th^>
+echo             ^<th^>Actions^</th^>
+echo         ^</tr^>
+echo     ^</thead^>
+echo     ^<tbody^>
+echo     @foreach ^(var customer in Model^)
+echo     ^{
+echo         ^<tr^>
+echo             ^<td^>@customer.FirstName^</td^>
+echo             ^<td^>@customer.LastName^</td^>
+echo             ^<td^>@customer.Email^</td^>
+echo             ^<td^>@customer.Phone^</td^>
+echo             ^<td^>@customer.Address^</td^>
+echo             ^<td^>
+echo                 ^<a asp-action="Edit" asp-route-id="@customer.CustomerId" class="btn btn-warning btn-sm"^>Edit^</a^>
+echo                 ^<a asp-action="Delete" asp-route-id="@customer.CustomerId" class="btn btn-danger btn-sm"^>Delete^</a^>
+echo             ^</td^>
+echo         ^</tr^>
+echo     ^}
+echo     ^</tbody^>
+echo ^</table^>
+) > CustomerManagement.Web\Views\Customers\Index.cshtml
+
+REM Create Create.cshtml
+(
+echo @model CustomerManagement.Application.DTOs.CustomerDto
+echo. 
+echo @{
+echo     ViewData["Title"] = "Create Customer";
+echo }
+echo.
+echo ^<h2^>Create Customer^</h2^>
+echo.
+echo ^<form asp-action="Create" method="post"^>
+echo ^<div class="form-group"^>
+echo     ^<label asp-for="FirstName"^>^</label^>
+echo     ^<input asp-for="FirstName" class="form-control" /^>
+echo     ^<span asp-validation-for="FirstName" class="text-danger"^>^</span^>
+echo ^</div^>
+echo ^<div class="form-group"^>
+echo     ^<label asp-for="LastName"^>^</label^>
+echo     ^<input asp-for="LastName" class="form-control" /^>
+echo ^<span asp-validation-for="LastName" class="text-danger"^>^</span^>
+echo ^</div^>
+echo ^<div class="form-group"^>
+echo ^<label asp-for="Email"^>^</label^>
+echo      ^<input asp-for="Email" class="form-control" /^>
+echo      ^<span asp-validation-for="Email" class="text-danger"^>^</span^>
+echo ^</div^>
+echo ^<div class="form-group"^>
+echo      ^<label asp-for="Phone"^>^</label^>
+echo      ^<input asp-for="Phone" class="form-control" /^>
+echo      ^<span asp-validation-for="Phone" class="text-danger"^>^</span^>
+echo ^</div^>
+echo ^<div class="form-group"^>
+echo      ^<label asp-for="Address"^>^</label^>
+echo      ^<input asp-for="Address" class="form-control" /^>
+echo      ^<span asp-validation-for="Address" class="text-danger"^>^</span^>
+echo ^</div^>
+echo ^<button type="submit" class="btn btn-primary"^>Create^</button^>
+echo ^<a asp-action="Index" class="btn btn-secondary"^>Back to List^</a^>
+echo ^</form^>
+echo.
+echo @section Scripts {
+echo ^<partial name="_ValidationScriptsPartial" /^>
+echo }
+) > CustomerManagement.Web/Views/Customers/Create.cshtml
+
+REM Create Edit.cshtml
+(
+echo @model CustomerManagement.Application.DTOs.CustomerDto
+echo.
+echo @{
+echo ViewData["Title"] = "Edit Customer";
+echo }
+echo.
+echo ^<h2^>Edit Customer^</h2^>
+echo.
+echo ^<form asp-action="Edit" method="post"^>
+echo ^<input type="hidden" asp-for="CustomerId" /^>
+echo.
+echo ^<div class="form-group"^>
+echo      ^<label asp-for="FirstName"^>^</label^>
+echo      ^<input asp-for="FirstName" class="form-control" /^>
+echo      ^<span asp-validation-for="FirstName" class="text-danger"^>^</span^>
+echo ^</div^>
+echo ^<div class="form-group"^>
+echo      ^<label asp-for="LastName"^>^</label^>
+echo      ^<input asp-for="LastName" class="form-control" /^>
+echo      ^<span asp-validation-for="LastName" class="text-danger"^>^</span^>
+echo ^</div^>
+echo ^<div class="form-group"^>
+echo      ^<label asp-for="Email"^>^</label^>
+echo      ^<input asp-for="Email" class="form-control" /^>
+echo      ^<span asp-validation-for="Email" class="text-danger"^>^</span^>
+echo ^</div^>
+echo ^<div class="form-group"^>
+echo      ^<label asp-for="Phone"^>^</label^>
+echo      ^<input asp-for="Phone" class="form-control" /^>
+echo      ^<span asp-validation-for="Phone" class="text-danger"^>^</span^>
+echo ^</div^>
+echo ^<div class="form-group"^>
+echo      ^<label asp-for="Address"^>^</label^>
+echo      ^<input asp-for="Address" class="form-control" /^>
+echo      ^<span asp-validation-for="Address" class="text-danger"^>^</span^>
+echo ^</div^>
+echo ^<button type="submit" class="btn btn-success"^>Save Changes^</button^>
+echo ^<a asp-action="Index" class="btn btn-secondary"^>Back to List^</a^>
+echo ^</form^>
+echo.
+echo @section Scripts {
+echo ^<partial name="_ValidationScriptsPartial" /^>
+echo }
+) > CustomerManagement.Web/Views/Customers/Edit.cshtml
+
+REM Create Delete.cshtml
+(
+echo @model CustomerManagement.Application.DTOs.CustomerDto
+echo.
+echo @{
+echo ViewData["Title"] = "Delete Customer";
+echo }
+echo.
+echo ^<h2^>Delete Customer^</h2^>
+echo.
+echo ^<h3^>Are you sure you want to delete this customer?^</h3^>
+echo.
+echo ^<div^>
+echo ^<h4^>Customer Details:^</h4^>
+echo ^<p^>
+echo      ^<strong^>Name:^</strong^> @Model.FirstName @Model.LastName ^<br /^>
+echo      ^<strong^>Email:^</strong^> @Model.Email ^<br /^>
+echo      ^<strong^>Phone:^</strong^> @Model.Phone ^<br /^>
+echo      ^<strong^>Address:^</strong^> @Model.Address
+echo ^</p^>
+echo ^</div^>
+echo.
+echo ^<form asp-action="Delete" method="post"^>
+echo ^<input type="hidden" name="id" value="@Model.CustomerId" /^>
+echo ^<button type="submit" class="btn btn-danger"^>Delete^</button^>
+echo ^<a asp-action="Index" class="btn btn-secondary"^>Cancel^</a^>
+echo ^</form^>
+echo.
+echo @section Scripts {
+echo ^<partial name="_ValidationScriptsPartial" /^>
+echo }
+) > CustomerManagement.Web/Views/Customers/Delete.cshtml
+
+echo Web-Controllers-View Layer End...
+
+
+
+
+
+
+
+dotnet build
+
+echo Migration-DB Start...
+dotnet ef migrations add InitialCreate -p CustomerManagement.Infrastructure -s CustomerManagement.Web
+dotnet ef database update -p CustomerManagement.Infrastructure -s CustomerManagement.Web
+echo Migration-DB End...
+
+dotnet build
+dotnet run --project CustomerManagement.Web
+# dotnet watch run --project CustomerManagement.Web
+
+echo Main Layer End...
+echo.
+echo Done! Customer Management Solution created successfully.
+pause
